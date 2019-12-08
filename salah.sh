@@ -11,4 +11,5 @@ echo ""
 # No arguments provided:
 if [ $# == 0 ]; then
     echo "hi";
+    grep "<table class=\"table table-responsive table-condensed table-prayertimes table-prayertimes-month table-hover hidden\">" philadelphia -n -A 296 | grep tbody -A 281 > times3.txt
 fi
