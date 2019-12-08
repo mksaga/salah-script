@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Salah.sh: a command-line utility for getting salah times 
+
 current_time="$(date '+%H:%M')"
 echo ""
 echo "Welcome!"
@@ -10,5 +12,3 @@ echo ""
 if [ $# == 0 ]; then
     echo "hi";
 fi
-
-#
