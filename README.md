@@ -12,3 +12,5 @@ This is a command-line utility for retrieving Muslim prayer times.
 `./salah.sh -disp today`: displays all five prayer times (and sunrise) for today
 
 `./salah.sh -disp next`: displays the next prayer time today
+
+`./salah.sh -alarm`: sets a system alarm for the next prayer time

@@ -1,34 +1,40 @@
 #!/bin/bash
 
 # Salah.sh: a command-line utility for getting salah times
+touch .config
 
-declare -r times_url=https://www.salahtimes.com/usa/philadelphia
+#default city is Philadelphia
+city=philadelphia
+
+#set city to config value
+while read -r text; do
+    city=$text
+done < .config;
+
+
+declare -r times_url=https://www.salahtimes.com/usa/$city
 
 current_time="$(date '+%H:%M')"
 mon_day="$(date '+%a %d')"
-# echo ""
-# echo "Welcome!"
-# echo "Current Time: $current_time"
-# echo ""
 
 # No arguments provided: print the usage guide
 if [ "$#" == 0 ]
 then
-    touch .config
     ./salah.sh -h
 fi
 
 # Print usage guide
 if [ "$1" == '-h' ]
 then
-    echo "Usage: ./ptimes [-disp -update -alert]"
+    echo "Usage: ./salah.sh [-disp -update -alert]"
     echo "-disp:"
     echo -e "\ttoday:\tprints today's prayer times"
     echo -e "\td [1-31]:\tprints prayer times of day #"
-    echo -e "\tweek:\tprints  prayer times for this week"
+    echo -e "\tnext:\tprints the next prayer time"
     echo ""
-    echo -e "-update:\tDownloads latest prayer times for this month"
-    echo -e "-alert: \tTODO"
+    echo "-update:Downloads latest prayer times for this month"
+    echo "-alarm: sets an alert for the next prayer time"
+    echo "-config:   [city name]:\tsets your location to the city of your choice, uses dashes to represent spaces. Default is Philadelphia"
 fi
 
 # Download new prayer times
@@ -38,14 +44,14 @@ then
     mon_yr=$(date "+%h %Y")
 
     # Find the line of the second occurence of "Dec 2019"
-    wget -O philly $times_url
-    start_line_num=$(awk -v mon_yr="$mon_yr" '$0 ~ mon_yr {i++}i==2{print NR; exit}' philly)
+    wget -q  -O city $times_url
+    start_line_num=$(awk -v mon_yr="$mon_yr" '$0 ~ mon_yr {i++}i==2{print NR; exit}' city)
     # echo $start_line_num
     # echo  $mon_yr
     start_line_num=$(($start_line_num - 1))
 
     # Delete lines up to second occurrence of "Dec 2019"
-    sed 1,"$start_line_num"d philly > za_philly
+    sed 1,"$start_line_num"d city > za_philly
 
     # Find line holding the end of the table
     end_line_num=$(awk '/\/tbody/{print NR; exit}' za_philly)
@@ -56,55 +62,57 @@ then
     sed 1,"$start_line_num"d za_philly > final_philly
 
     # Delete content after the table
-    sed '/\/table/,$d' final_philly > complete_philly
+    sed '/\/table/,$d' final_philly > city_times
 
     # Cleanup
-    rm final_philly za_philly philly
+    rm final_philly za_philly city
 
     # part2: convert the HTML table to a nice text format
 
     if [[ "$OSTYPE" == "linux-gnu" ]]; then
-        sed -i 's_ *<.\{2\}>_b_' complete_philly
-        sed -i 's_b\(.*\)_\1_' complete_philly
-        sed -i 's_\(.\{4,5\}\)<.*_\1_' complete_philly
-        sed -i 's_<.*_a_' complete_philly
+        sed -i 's_ *<.\{2\}>_b_' city_times
+        sed -i 's_b\(.*\)_\1_' city_times
+        sed -i 's_\(.\{4,5\}\)<.*_\1_' city_times
+        sed -i 's_<.*_a_' city_times
 
         # Fix two-letter short dates to 3-letter
-        sed -i 's_Su\(.*\)_Sun\1_' complete_philly
-        sed -i 's_Mo\(.*\)_Mon\1_' complete_philly
-        sed -i 's_Tu\(.*\)_Tue\1_' complete_philly
-        sed -i 's_We\(.*\)_Wed\1_' complete_philly
-        sed -i 's_Th\(.*\)_Thu\1_' complete_philly
-        sed -i 's_Fr\(.*\)_Fri\1_' complete_philly
-        sed -i 's_Sa\(.*\)_Sat\1_' complete_philly
+        sed -i 's_Su\(.*\)_Sun\1_' city_times
+        sed -i 's_Mo\(.*\)_Mon\1_' city_times
+        sed -i 's_Tu\(.*\)_Tue\1_' city_times
+        sed -i 's_We\(.*\)_Wed\1_' city_times
+        sed -i 's_Th\(.*\)_Thu\1_' city_times
+        sed -i 's_Fr\(.*\)_Fri\1_' city_times
+        sed -i 's_Sa\(.*\)_Sat\1_' city_times
 
         # Correct single-digit dates to two-digit
-        sed -i '1,83s_\([A-Za-z ]*\) \([0-9]\)_\1 0\2_' complete_philly
-        sed -i '/^[[:space:]]*$/d' complete_philly
+        sed -i '1,83s_\([A-Za-z ]*\) \([0-9]\)_\1 0\2_' city_times
+        sed -i '/^[[:space:]]*$/d' city_times
 
     # sed requires the two empty ticks on macOS
     elif [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' 's_ *<.\{2\}>_b_' complete_philly
-        sed -i '' 's_b\(.*\)_\1_' complete_philly
-        sed -i '' 's_\(.\{4,5\}\)<.*_\1_' complete_philly
-        sed -i '' 's_<.*_a_' complete_philly
+        sed -i '' 's_ *<.\{2\}>_b_' city_times
+        sed -i '' 's_b\(.*\)_\1_' city_times
+        sed -i '' 's_\(.\{4,5\}\)<.*_\1_' city_times
+        sed -i '' 's_<.*_a_' city_times
 
         # Fix two-letter short dates to 3-letter
-        sed -i '' 's_Su\(.*\)_Sun\1_' complete_philly
-        sed -i '' 's_Mo\(.*\)_Mon\1_' complete_philly
-        sed -i '' 's_Tu\(.*\)_Tue\1_' complete_philly
-        sed -i '' 's_We\(.*\)_Wed\1_' complete_philly
-        sed -i '' 's_Th\(.*\)_Thu\1_' complete_philly
-        sed -i '' 's_Fr\(.*\)_Fri\1_' complete_philly
-        sed -i '' 's_Sa\(.*\)_Sat\1_' complete_philly
+        sed -i '' 's_Su\(.*\)_Sun\1_' city_times
+        sed -i '' 's_Mo\(.*\)_Mon\1_' city_times
+        sed -i '' 's_Tu\(.*\)_Tue\1_' city_times
+        sed -i '' 's_We\(.*\)_Wed\1_' city_times
+        sed -i '' 's_Th\(.*\)_Thu\1_' city_times
+        sed -i '' 's_Fr\(.*\)_Fri\1_' city_times
+        sed -i '' 's_Sa\(.*\)_Sat\1_' city_times
 
         # Correct single-digit dates to two-digit
-        sed -i '' '1,83s_\([A-Za-z ]*\) \([0-9]\)_\1 0\2_' complete_philly
-        sed -i '' '/^[[:space:]]*$/d' complete_philly
+        sed -i '' '1,83s_\([A-Za-z ]*\) \([0-9]\)_\1 0\2_' city_times
+        sed -i '' '/^[[:space:]]*$/d' city_times
     fi
 
-    awk NF complete_philly > .times
+    awk NF city_times > .times
+    rm city_times
 
+    # TODO Convert to an actual table
 elif [ "$1" == '-disp' ]
 then
     if [ $# == 1 ]
@@ -152,7 +160,7 @@ then
                             if [ $current_min -lt $prayer_min ]; then
                                 echo -n "$prayer_hr:"
                                 echo "$prayer_min"
-                                echo "all done!"
+                                #echo "all done!"
                                 break
                             fi
                         fi
@@ -254,4 +262,18 @@ then
         fi
 
     fi
+elif [ "$1" == '-config' ] #sets the configuration city
+then
+  echo $2 > .config
+
+elif [ "$1" == '-alarm' ] # sets an alarm for the next prayer
+then
+  ./salah.sh -disp next > .temp
+  while read -r text; do
+      time=$text
+  done < .temp;
+  rm .temp
+  sleep $(( $(date +%s -d $time) - $( date +%s ) )) &&  notify-send -t 150 -u critical 'Time to pray!!!' 'Prayer at '$time'' &
+  echo "alarm set for $time which is $(( $(date +%s -d $time) - $( date +%s ) )) seconds away"
+
 fi
